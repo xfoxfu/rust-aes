@@ -13,7 +13,7 @@ pub fn rcon_get(pos:usize) -> u32 {
 
 #[cfg(test)]
 #[test]
-pub fn test_sbox() {
+fn test_sbox() {
     assert_eq!(S_BOX[0x58], 0x6A);
     assert_eq!(sbox_get(0x58), 0x6A);
     assert_eq!(S_BOX[0xC1], 0x78);
@@ -22,7 +22,7 @@ pub fn test_sbox() {
 
 #[cfg(test)]
 #[test]
-pub fn test_rcon() {
+fn test_rcon() {
     assert_eq!(RCON[0x07], 0x40);
     assert_eq!(rcon_get(0x07), 0x40000000);
 }

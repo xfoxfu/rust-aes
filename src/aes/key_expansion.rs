@@ -1,10 +1,10 @@
 use std::marker::PhantomData;
 
-use super::{rcon_get, sbox_get, LengthMode};
+use super::{rcon_get, sbox_get, RijndaelMode};
 use generic_array::GenericArray;
 use typenum::{Prod, Unsigned};
 
-pub struct KeyExpander<M: LengthMode>(PhantomData<M>);
+pub struct KeyExpander<M: RijndaelMode>(PhantomData<M>);
 
 fn byte_to_word(bs: &[u8; 4]) -> u32 {
     ((bs[0] as u32) << 24) | ((bs[1] as u32) << 16) | ((bs[2] as u32) << 8) | bs[3] as u32
@@ -16,7 +16,7 @@ fn test_byte_to_word() {
     assert_eq!(byte_to_word(&[0x12, 0x34, 0x56, 0x78]), 0x12345678);
 }
 
-impl<M: LengthMode> KeyExpander<M>
+impl<M: RijndaelMode> KeyExpander<M>
 where
     M::NkWords: generic_array::ArrayLength<u32>,
     M::NkWords: std::ops::Mul<typenum::U4>,
@@ -57,9 +57,9 @@ fn test_sub_word() {
     assert_eq!(sub_word(0x12345678), 0xC918B1BC);
 }
 
-impl<M: LengthMode> KeyExpander<M>
+impl<M: RijndaelMode> KeyExpander<M>
 where
-    M: LengthMode,
+    M: RijndaelMode,
     M::NrKey: std::ops::Mul<typenum::U4>,
     M::NkWords: generic_array::ArrayLength<u32>,
     Prod<M::NrKey, typenum::U4>: generic_array::ArrayLength<u32>,
@@ -94,7 +94,7 @@ where
 
 #[cfg(test)]
 #[test]
-pub fn test_key_expansion() {
+fn test_key_expansion() {
     type Expander = KeyExpander<super::AES128>;
 
     let k = b"\x2b\x7e\x15\x16\x28\xae\xd2\xa6\xab\xf7\x15\x88\x09\xcf\x4f\x3c";

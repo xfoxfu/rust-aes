@@ -1,4 +1,4 @@
-pub trait LengthMode {
+pub trait RijndaelMode {
     /// key length
     type NkWords: typenum::Unsigned;
     /// block size
@@ -13,7 +13,7 @@ macro_rules! impl_length_mode {
     ($s:ident, $nk:ty, $nb:ty) => {
         pub struct $s;
 
-        impl LengthMode for $s {
+        impl crate::aes::RijndaelMode for $s {
             type NkWords = $nk;
             type NbWords = $nb;
             type NrKey = typenum::Sum<typenum::Maximum<$nk, $nb>, typenum::U7>;
