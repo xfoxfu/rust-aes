@@ -1,3 +1,4 @@
+mod aes;
 mod opt;
 
 fn main() -> std::io::Result<()> {
