@@ -2,6 +2,7 @@
 
 mod aes;
 mod opt;
+mod padding;
 
 fn main() -> std::io::Result<()> {
     let opts = opt::Opts::parse();
