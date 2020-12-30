@@ -67,7 +67,7 @@ where
         Self { state, keys }
     }
 
-    pub fn new_from_arr(input: &[u8], key: &[u8]) -> Self
+    pub fn new_with_raw_data(input: &[u8], key: &[u8]) -> Self
     where
         M::NkWords: ArrayLength<u32>,
         M::NkWords: Mul<typenum::U4>,
@@ -96,6 +96,32 @@ where
             GenericArray::from_slice(&key),
         ));
         Self::new(&input_arr, &key_arr)
+    }
+
+    pub fn new_with_raw_data_key(
+        input: &[u8],
+        key: &GenericArray<u32, Prod<M::NrKey, M::NbWords>>,
+    ) -> Self
+    where
+        M::NkWords: ArrayLength<u32>,
+        M::NkWords: Mul<typenum::U4>,
+        Prod<M::NkWords, typenum::U4>: generic_array::ArrayLength<u8>,
+        M::NbWords: ArrayLength<u32>,
+        M::NrKey: Mul<M::NbWords>,
+        Prod<M::NrKey, M::NbWords>: ArrayLength<u32>,
+    {
+        assert_eq!(input.len(), M::NbWords::to_usize() * 4);
+        assert_eq!(key.len(), M::NkWords::to_usize() * M::NrKey::to_usize() * 4);
+        let mut input_arr = GenericArray::default();
+        for i in 0..M::NbWords::to_usize() {
+            input_arr[i] = byte_to_word(&[
+                input[i * 4],
+                input[i * 4 + 1],
+                input[i * 4 + 2],
+                input[i * 4 + 3],
+            ]);
+        }
+        Self::new(&input_arr, key)
     }
 
     #[cfg(test)]
@@ -278,10 +304,10 @@ macro_rules! _make_test {
         let plain = hex::decode($val).unwrap();
         let enc = hex::decode($enc).unwrap();
         let key = hex::decode($key).unwrap();
-        let cryptor = RijndaelCryptor::<$mode>::new_from_arr(&plain, &key);
+        let cryptor = RijndaelCryptor::<$mode>::new_with_raw_data(&plain, &key);
         let ciphertext = cryptor.encrypt_to_arr();
         assert_eq!(hex::encode(ciphertext), $enc);
-        let cryptor = RijndaelCryptor::<$mode>::new_from_arr(&enc, &key);
+        let cryptor = RijndaelCryptor::<$mode>::new_with_raw_data(&enc, &key);
         let plaintext = cryptor.decrypt_to_arr();
         assert_eq!(hex::encode(plaintext), $val);
     };
@@ -292,7 +318,7 @@ macro_rules! _make_test {
 pub fn test_rijndael_iter() {
     let plain = hex::decode("f34481ec3cc627bacd5dc3fbdb135345").unwrap();
     let key = hex::decode("00000000000000000000000000000000").unwrap();
-    let mut cryptor = RijndaelCryptor::<super::AES128>::new_from_arr(&plain, &key);
+    let mut cryptor = RijndaelCryptor::<super::AES128>::new_with_raw_data(&plain, &key);
     cryptor.add_round_key(0);
     assert_eq!(
         cryptor._test_get_state(),

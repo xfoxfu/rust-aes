@@ -19,6 +19,8 @@ macro_rules! impl_length_mode {
         impl crate::aes::RijndaelMode for $s {
             type NkWords = $nk;
             type NbWords = $nb;
+            // the following are trick to address unstable associated default types
+            // https://github.com/rust-lang/rust/issues/29661
             type NrKey = typenum::Sum<typenum::Maximum<$nk, $nb>, typenum::U7>;
             type Nr = typenum::Sum<typenum::Maximum<$nk, $nb>, typenum::U5>;
         }
