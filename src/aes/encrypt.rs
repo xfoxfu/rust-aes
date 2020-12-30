@@ -1,5 +1,5 @@
 use super::{
-    consts::sbox_get,
+    consts::{inv_sbox_get, sbox_get},
     converter::{byte_to_word, word_to_bytes},
     key_expansion::KeyExpander,
     matrix_to_words, words_to_matrix, RijndaelMode,
@@ -31,7 +31,7 @@ pub fn galois_mul(mut a: u8, mut b: u8) -> u8 {
 
 pub type State<M> = MatrixMN<u8, nalgebra::U4, <<M as RijndaelMode>::NbWords as NamedDim>::Name>;
 
-pub struct RijndaelEncryptor<M: RijndaelMode>
+pub struct RijndaelCryptor<M: RijndaelMode>
 where
     M::NrKey: ArrayLength<State<M>>,
     DefaultAllocator: Allocator<u8, U4, <M::NbWords as NamedDim>::Name>,
@@ -40,7 +40,7 @@ where
     keys: GenericArray<State<M>, M::NrKey>,
 }
 
-impl<M: RijndaelMode> RijndaelEncryptor<M>
+impl<M: RijndaelMode> RijndaelCryptor<M>
 where
     M::NrKey: ArrayLength<State<M>>,
     DefaultAllocator: Allocator<u8, U4, <M::NbWords as NamedDim>::Name>,
@@ -120,6 +120,14 @@ where
         }
     }
 
+    pub fn inv_sub_bytes(&mut self) {
+        for mut row in self.state.row_iter_mut() {
+            for cell in row.iter_mut() {
+                *cell = inv_sbox_get(*cell);
+            }
+        }
+    }
+
     pub fn shift_row(&mut self, row_id: usize, count: usize) {
         let row_len = self.state.row(row_id).len();
         for _ in 0..count {
@@ -129,9 +137,24 @@ where
         }
     }
 
+    pub fn inv_shift_row(&mut self, row_id: usize, count: usize) {
+        let row_len = self.state.row(row_id).len();
+        for _ in 0..count {
+            for i in (0..(row_len - 1)).rev() {
+                self.state.swap((row_id, i), (row_id, (i + 1) % row_len));
+            }
+        }
+    }
+
     pub fn shift_rows(&mut self) {
         for i in 0..4 {
             self.shift_row(i, i);
+        }
+    }
+
+    pub fn inv_shift_rows(&mut self) {
+        for i in 0..4 {
+            self.inv_shift_row(i, i);
         }
     }
 
@@ -147,9 +170,28 @@ where
         self.state[(3, c)] = gm(0x03, s0) ^ s1 ^ s2 ^ gm(0x02, s3);
     }
 
+    pub fn inv_mix_column(&mut self, c: usize) {
+        use galois_mul as gm;
+        let s0 = self.state[(0, c)];
+        let s1 = self.state[(1, c)];
+        let s2 = self.state[(2, c)];
+        let s3 = self.state[(3, c)];
+
+        self.state[(0, c)] = gm(0x0e, s0) ^ gm(0x0b, s1) ^ gm(0x0d, s2) ^ gm(0x09, s3);
+        self.state[(1, c)] = gm(0x09, s0) ^ gm(0x0e, s1) ^ gm(0x0b, s2) ^ gm(0x0d, s3);
+        self.state[(2, c)] = gm(0x0d, s0) ^ gm(0x09, s1) ^ gm(0x0e, s2) ^ gm(0x0b, s3);
+        self.state[(3, c)] = gm(0x0b, s0) ^ gm(0x0d, s1) ^ gm(0x09, s2) ^ gm(0x0e, s3);
+    }
+
     pub fn mix_columns(&mut self) {
         for col in 0..self.state.column_iter().len() {
             self.mix_column(col);
+        }
+    }
+
+    pub fn inv_mix_columns(&mut self) {
+        for col in 0..self.state.column_iter().len() {
+            self.inv_mix_column(col);
         }
     }
 
@@ -173,6 +215,27 @@ where
         matrix_to_words::<M>(&self.state)
     }
 
+    pub fn decrypt(mut self) -> GenericArray<u32, M::NbWords>
+    where
+        M::NbWords: ArrayLength<u32>,
+    {
+        self.add_round_key(M::Nr::to_usize() + 1);
+
+        for i in (0..M::Nr::to_usize()).rev() {
+            dbg!(i + 1);
+            self.inv_shift_rows();
+            self.inv_sub_bytes();
+            self.add_round_key(i + 1);
+            self.inv_mix_columns();
+        }
+
+        self.inv_shift_rows();
+        self.inv_sub_bytes();
+        self.add_round_key(0);
+
+        matrix_to_words::<M>(&self.state)
+    }
+
     pub fn encrypt_to_arr(self) -> GenericArray<u8, Prod<M::NbWords, typenum::U4>>
     where
         M::NbWords: ArrayLength<u32>,
@@ -190,27 +253,49 @@ where
         }
         ret
     }
+
+    pub fn decrypt_to_arr(self) -> GenericArray<u8, Prod<M::NbWords, typenum::U4>>
+    where
+        M::NbWords: ArrayLength<u32>,
+        M::NbWords: std::ops::Mul<typenum::U4>,
+        Prod<M::NbWords, typenum::U4>: ArrayLength<u8>,
+    {
+        let res = self.decrypt();
+        let mut ret = GenericArray::default();
+        for i in 0..res.len() {
+            let (r0, r1, r2, r3) = word_to_bytes(res[i]);
+            ret[i * 4] = r0;
+            ret[i * 4 + 1] = r1;
+            ret[i * 4 + 2] = r2;
+            ret[i * 4 + 3] = r3;
+        }
+        ret
+    }
 }
 
 macro_rules! _make_test {
     ($mode:ty, $key:literal, $val:literal, $enc:literal) => {
         let plain = hex::decode($val).unwrap();
+        let enc = hex::decode($enc).unwrap();
         let key = hex::decode($key).unwrap();
-        let encryptor = RijndaelEncryptor::<$mode>::new_from_arr(&plain, &key);
-        let ciphertext = encryptor.encrypt_to_arr();
+        let cryptor = RijndaelCryptor::<$mode>::new_from_arr(&plain, &key);
+        let ciphertext = cryptor.encrypt_to_arr();
         assert_eq!(hex::encode(ciphertext), $enc);
+        let cryptor = RijndaelCryptor::<$mode>::new_from_arr(&enc, &key);
+        let plaintext = cryptor.decrypt_to_arr();
+        assert_eq!(hex::encode(plaintext), $val);
     };
 }
 
 #[cfg(test)]
 #[test]
-pub fn test_rijndael_encrypt_iter() {
+pub fn test_rijndael_iter() {
     let plain = hex::decode("f34481ec3cc627bacd5dc3fbdb135345").unwrap();
     let key = hex::decode("00000000000000000000000000000000").unwrap();
-    let mut encryptor = RijndaelEncryptor::<super::AES128>::new_from_arr(&plain, &key);
-    encryptor.add_round_key(0);
+    let mut cryptor = RijndaelCryptor::<super::AES128>::new_from_arr(&plain, &key);
+    cryptor.add_round_key(0);
     assert_eq!(
-        encryptor._test_get_state(),
+        cryptor._test_get_state(),
         &State::<super::AES128>::from_column_slice(&[
             0xf3, 0x44, 0x81, 0xec, //
             0x3c, 0xc6, 0x27, 0xba, //
@@ -218,9 +303,9 @@ pub fn test_rijndael_encrypt_iter() {
             0xdb, 0x13, 0x53, 0x45, //
         ])
     );
-    encryptor.shift_rows();
+    cryptor.shift_rows();
     assert_eq!(
-        encryptor._test_get_state(),
+        cryptor._test_get_state(),
         &State::<super::AES128>::from_row_slice(&[
             0xf3, 0x3c, 0xcd, 0xdb, //
             0xc6, 0x5d, 0x13, 0x44, //
@@ -228,9 +313,9 @@ pub fn test_rijndael_encrypt_iter() {
             0x45, 0xec, 0xba, 0xfb, //
         ])
     );
-    encryptor.sub_bytes();
+    cryptor.sub_bytes();
     assert_eq!(
-        encryptor._test_get_state(),
+        cryptor._test_get_state(),
         &State::<super::AES128>::from_row_slice(&[
             0x0d, 0xeb, 0xbd, 0xb9, //
             0xb4, 0x4c, 0x7d, 0x1b, //
@@ -238,9 +323,9 @@ pub fn test_rijndael_encrypt_iter() {
             0x6e, 0xce, 0xf4, 0x0f, //
         ])
     );
-    encryptor.mix_columns();
+    cryptor.mix_columns();
     assert_eq!(
-        encryptor._test_get_state(),
+        cryptor._test_get_state(),
         &State::<super::AES128>::from_row_slice(&[
             0x9d, 0x3a, 0x1e, 0x87, //
             0x62, 0x91, 0xa7, 0xcf, //
@@ -253,7 +338,7 @@ pub fn test_rijndael_encrypt_iter() {
 #[rustfmt::skip]
 #[cfg(test)]
 #[test]
-pub fn test_rijndael_encrypt_enc() {
+pub fn test_rijndael_enc() {
     _make_test!(super::AES128, "00000000000000000000000000000000", "f34481ec3cc627bacd5dc3fb08f273e6", "0336763e966d92595a567cc9ce537f5e");
     _make_test!(super::AES128, "00000000000000000000000000000000", "9798c4640bad75c7c3227db910174e72", "a9a1631bf4996954ebc093957b234589");
     _make_test!(super::AES128, "00000000000000000000000000000000", "96ab5c2ff612d9dfaae8c31f30c42168", "ff4f8391a6a40ca5b25d23bedd44a597");

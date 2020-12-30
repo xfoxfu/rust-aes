@@ -9,9 +9,7 @@ use mode::RijndaelMode;
 use mode::{AES128, AES192, AES256};
 
 mod encrypt;
-use encrypt::RijndaelEncryptor;
-mod decrypt;
-use decrypt::RijndaelDecryptor;
+use encrypt::RijndaelCryptor;
 
 mod converter;
 use converter::{
