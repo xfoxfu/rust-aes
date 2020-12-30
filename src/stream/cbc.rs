@@ -2,23 +2,20 @@ use super::{Block, Streamer};
 use crate::aes::{RijndaelCryptor, RijndaelMode};
 use crate::padding::Padding;
 use generic_array::GenericArray;
-use std::marker::PhantomData;
 
 pub struct CipherBlockChaining<M: RijndaelMode>
 where
+    M::NbWords: generic_array::ArrayLength<u32>,
     M::NbWords: std::ops::Mul<typenum::U4>,
-    typenum::Prod<M::NbWords, typenum::U4>: generic_array::ArrayLength<u8>,
+    M::NkWords: generic_array::ArrayLength<u32>,
+    M::NkWords: std::ops::Mul<typenum::U4>,
+    M::NrKey: generic_array::ArrayLength<crate::aes::State<M>>,
     M::NrKey: std::ops::Mul<M::NbWords>,
-    typenum::Prod<M::NrKey, M::NbWords>: generic_array::ArrayLength<u32>,
-    M::NbWords: std::ops::Mul<typenum::U4>,
-    typenum::Prod<M::NbWords, typenum::U4>: generic_array::ArrayLength<u8>,
     nalgebra::DefaultAllocator:
         nalgebra::allocator::Allocator<u8, nalgebra::U4, <M::NbWords as nalgebra::NamedDim>::Name>,
-    M::NrKey: generic_array::ArrayLength<crate::aes::State<M>>,
-    M::NbWords: generic_array::ArrayLength<u32>,
-    M::NkWords: std::ops::Mul<typenum::U4>,
+    typenum::Prod<M::NbWords, typenum::U4>: generic_array::ArrayLength<u8>,
     typenum::Prod<M::NkWords, typenum::U4>: generic_array::ArrayLength<u8>,
-    M::NkWords: generic_array::ArrayLength<u32>,
+    typenum::Prod<M::NrKey, M::NbWords>: generic_array::ArrayLength<u32>,
 {
     key: GenericArray<u32, typenum::Prod<M::NrKey, M::NbWords>>,
     acc: Block<M>,
@@ -26,19 +23,17 @@ where
 
 impl<M: RijndaelMode, P: Padding> Streamer<M, P> for CipherBlockChaining<M>
 where
+    M::NbWords: generic_array::ArrayLength<u32>,
     M::NbWords: std::ops::Mul<typenum::U4>,
-    typenum::Prod<M::NbWords, typenum::U4>: generic_array::ArrayLength<u8>,
+    M::NkWords: generic_array::ArrayLength<u32>,
+    M::NkWords: std::ops::Mul<typenum::U4>,
+    M::NrKey: generic_array::ArrayLength<crate::aes::State<M>>,
     M::NrKey: std::ops::Mul<M::NbWords>,
-    typenum::Prod<M::NrKey, M::NbWords>: generic_array::ArrayLength<u32>,
-    M::NbWords: std::ops::Mul<typenum::U4>,
-    typenum::Prod<M::NbWords, typenum::U4>: generic_array::ArrayLength<u8>,
     nalgebra::DefaultAllocator:
         nalgebra::allocator::Allocator<u8, nalgebra::U4, <M::NbWords as nalgebra::NamedDim>::Name>,
-    M::NrKey: generic_array::ArrayLength<crate::aes::State<M>>,
-    M::NbWords: generic_array::ArrayLength<u32>,
-    M::NkWords: std::ops::Mul<typenum::U4>,
+    typenum::Prod<M::NbWords, typenum::U4>: generic_array::ArrayLength<u8>,
     typenum::Prod<M::NkWords, typenum::U4>: generic_array::ArrayLength<u8>,
-    M::NkWords: generic_array::ArrayLength<u32>,
+    typenum::Prod<M::NrKey, M::NbWords>: generic_array::ArrayLength<u32>,
 {
     fn new_with_ext_key(
         iv: super::Block<M>,
