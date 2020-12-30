@@ -6,6 +6,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "generic-array",
+ "hex",
  "nalgebra",
  "typenum",
 ]
@@ -126,6 +127,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "hex"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "644f9158b2f133fd50f5fb3242878846d9eb792e445c893805ff0e3824006e35"
+
+[[package]]
 name = "indexmap"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -164,9 +171,9 @@ dependencies = [
 
 [[package]]
 name = "nalgebra"
-version = "0.23.2"
+version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c9bd52e9c9922d5702d5c2a105ceacc3c1206e781d3d130f4d2b7ad5f43c144b"
+checksum = "77fea728d5bead12fae18a36258f43f397c20850925cd84af2caf9b8fc7f5d49"
 dependencies = [
  "approx",
  "generic-array",

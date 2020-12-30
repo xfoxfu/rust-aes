@@ -1,12 +1,15 @@
+use nalgebra::NamedDim;
+use typenum::Unsigned;
+
 pub trait RijndaelMode {
     /// key length
-    type NkWords: typenum::Unsigned;
+    type NkWords: Unsigned + NamedDim;
     /// block size
-    type NbWords: typenum::Unsigned;
+    type NbWords: Unsigned + NamedDim;
     /// round key size (which equals `max(Nk, Nb) + 7`)
-    type NrKey: typenum::Unsigned;
+    type NrKey: Unsigned + NamedDim;
     /// round count (which equals `max(Nk, Nb) + 5`)
-    type Nr: typenum::Unsigned;
+    type Nr: Unsigned + NamedDim;
 }
 
 macro_rules! impl_length_mode {

@@ -7,3 +7,13 @@ use key_expansion::KeyExpander;
 mod mode;
 use mode::RijndaelMode;
 use mode::{AES128, AES192, AES256};
+
+mod encrypt;
+use encrypt::RijndaelEncryptor;
+mod decrypt;
+use decrypt::RijndaelDecryptor;
+
+mod converter;
+use converter::{
+    byte_to_word, matrix_to_words, rot_word, sub_word, word_to_bytes, words_to_matrix,
+};

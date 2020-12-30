@@ -1,20 +1,9 @@
-use std::marker::PhantomData;
-
-use super::{rcon_get, sbox_get, RijndaelMode};
+use super::{byte_to_word, rcon_get, rot_word, sub_word, RijndaelMode};
 use generic_array::GenericArray;
+use std::marker::PhantomData;
 use typenum::{Prod, Unsigned};
 
 pub struct KeyExpander<M: RijndaelMode>(PhantomData<M>);
-
-fn byte_to_word(bs: &[u8; 4]) -> u32 {
-    ((bs[0] as u32) << 24) | ((bs[1] as u32) << 16) | ((bs[2] as u32) << 8) | bs[3] as u32
-}
-
-#[cfg(test)]
-#[test]
-fn test_byte_to_word() {
-    assert_eq!(byte_to_word(&[0x12, 0x34, 0x56, 0x78]), 0x12345678);
-}
 
 impl<M: RijndaelMode> KeyExpander<M>
 where
@@ -33,58 +22,33 @@ where
     }
 }
 
-fn rot_word(w: u32) -> u32 {
-    (w << 8) | (w >> 24)
-}
-
-#[cfg(test)]
-#[test]
-fn test_rot_word() {
-    assert_eq!(rot_word(0x12345678), 0x34567812);
-    assert_eq!(rot_word(0x80123456), 0x12345680);
-}
-
-fn sub_word(w: u32) -> u32 {
-    ((sbox_get((0xFF & (w >> 24)) as u8) as u32) << 24)
-        | ((sbox_get((0xFF & (w >> 16)) as u8) as u32) << 16)
-        | ((sbox_get((0xFF & (w >> 8)) as u8) as u32) << 8)
-        | (sbox_get((0xFF & w) as u8) as u32)
-}
-
-#[cfg(test)]
-#[test]
-fn test_sub_word() {
-    assert_eq!(sub_word(0x12345678), 0xC918B1BC);
-}
-
 impl<M: RijndaelMode> KeyExpander<M>
 where
-    M: RijndaelMode,
-    M::NrKey: std::ops::Mul<typenum::U4>,
+    M::NrKey: std::ops::Mul<M::NbWords>,
     M::NkWords: generic_array::ArrayLength<u32>,
-    Prod<M::NrKey, typenum::U4>: generic_array::ArrayLength<u32>,
+    Prod<M::NrKey, M::NbWords>: generic_array::ArrayLength<u32>,
 {
+    #[allow(clippy::many_single_char_names)]
     /// AES key schedule algorithm
-    /// # Panics
-    /// When input key size does not match given mode `M`.
     /// # See
     /// See [AES Key Schedule](https://en.wikipedia.org/wiki/AES_key_expansion#The_key_expansion)
     pub fn key_expansion(
         k: &GenericArray<u32, M::NkWords>,
-    ) -> GenericArray<u32, Prod<M::NrKey, typenum::U4>> {
+    ) -> GenericArray<u32, Prod<M::NrKey, M::NbWords>> {
         let n = M::NkWords::to_usize();
+        let b = M::NbWords::to_usize();
         let r = M::NrKey::to_usize();
 
         let mut w = GenericArray::default();
-        for i in 0..(4 * r) {
+        for i in 0..(b * r) {
             if i < n {
-                w[i] = dbg!(i, k[i]).1;
+                w[i] = k[i];
             } else if i >= n && i % n == 0 {
-                w[i] = dbg!(i, w[i - n] ^ sub_word(rot_word(w[i - 1])) ^ rcon_get(i / n)).1;
+                w[i] = w[i - n] ^ sub_word(rot_word(w[i - 1])) ^ rcon_get(i / n);
             } else if i >= n && n > 6 && i % n == 4 {
-                w[i] = dbg!(i, w[i - n] ^ sub_word(w[i - 1])).1;
+                w[i] = w[i - n] ^ sub_word(w[i - 1]);
             } else {
-                w[i] = dbg!(i, w[i - n] ^ w[i - 1]).1;
+                w[i] = w[i - n] ^ w[i - 1];
             }
         }
 
@@ -97,7 +61,7 @@ where
 fn test_key_expansion() {
     type Expander = KeyExpander<super::AES128>;
 
-    let k = b"\x2b\x7e\x15\x16\x28\xae\xd2\xa6\xab\xf7\x15\x88\x09\xcf\x4f\x3c";
+    let k = b"\x2B\x7E\x15\x16\x28\xAE\xD2\xA6\xAB\xF7\x15\x88\x09\xCF\x4F\x3C";
     let w = Expander::key_expansion(&Expander::convert_key(GenericArray::from_slice(k)));
     assert_eq!(
         &w,
