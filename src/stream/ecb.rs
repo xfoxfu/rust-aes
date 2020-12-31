@@ -1,6 +1,6 @@
 use super::Streamer;
 use crate::{
-    aes::{bytes_to_word_arr, RijndaelCryptor, RijndaelMode},
+    aes::{RijndaelCryptor, RijndaelMode},
     padding::Padding,
 };
 use generic_array::GenericArray;
@@ -95,7 +95,7 @@ pub fn test() {
     // The following test cases are from https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-38a.pdf
     let mut cipher = ElectronicCodeBook::<crate::aes::AES128, crate::padding::PKCS7>::new(
         GenericArray::clone_from_slice(&hex::decode("00000000000000000000000000000000").unwrap()),
-        GenericArray::clone_from_slice(&[0x2b7e1516, 0x28aed2a6, 0xabf71588, 0x09cf4f3c]),
+        GenericArray::clone_from_slice(&hex::decode("2b7e151628aed2a6abf7158809cf4f3c").unwrap()),
     );
     impl_test_block_en!(cipher : "6bc1bee22e409f96e93d7e117393172a" => "3ad77bb40d7a3660a89ecaf32466ef97");
     impl_test_block_en!(cipher : "ae2d8a571e03ac9c9eb76fac45af8e51" => "f5d3d58503b9699de785895a96fdbaaf");
@@ -104,7 +104,7 @@ pub fn test() {
 
     let mut cipher = ElectronicCodeBook::<crate::aes::AES128, crate::padding::PKCS7>::new(
         GenericArray::clone_from_slice(&hex::decode("00000000000000000000000000000000").unwrap()),
-        GenericArray::clone_from_slice(&[0x2b7e1516, 0x28aed2a6, 0xabf71588, 0x09cf4f3c]),
+        GenericArray::clone_from_slice(&hex::decode("2b7e151628aed2a6abf7158809cf4f3c").unwrap()),
     );
     impl_test_block_de!(cipher : "3ad77bb40d7a3660a89ecaf32466ef97" => "6bc1bee22e409f96e93d7e117393172a");
     impl_test_block_de!(cipher : "f5d3d58503b9699de785895a96fdbaaf" => "ae2d8a571e03ac9c9eb76fac45af8e51");
@@ -113,9 +113,9 @@ pub fn test() {
 
     let mut cipher = ElectronicCodeBook::<crate::aes::AES192, crate::padding::PKCS7>::new(
         GenericArray::clone_from_slice(&hex::decode("00000000000000000000000000000000").unwrap()),
-        GenericArray::clone_from_slice(&[
-            0x8e73b0f7, 0xda0e6452, 0xc810f32b, 0x809079e5, 0x62f8ead2, 0x522c6b7b,
-        ]),
+        GenericArray::clone_from_slice(
+            &hex::decode("8e73b0f7da0e6452c810f32b809079e562f8ead2522c6b7b").unwrap(),
+        ),
     );
     impl_test_block_en!(cipher : "6bc1bee22e409f96e93d7e117393172a" => "bd334f1d6e45f25ff712a214571fa5cc");
     impl_test_block_en!(cipher : "ae2d8a571e03ac9c9eb76fac45af8e51" => "974104846d0ad3ad7734ecb3ecee4eef");
@@ -124,9 +124,9 @@ pub fn test() {
 
     let mut cipher = ElectronicCodeBook::<crate::aes::AES192, crate::padding::PKCS7>::new(
         GenericArray::clone_from_slice(&hex::decode("00000000000000000000000000000000").unwrap()),
-        GenericArray::clone_from_slice(&[
-            0x8e73b0f7, 0xda0e6452, 0xc810f32b, 0x809079e5, 0x62f8ead2, 0x522c6b7b,
-        ]),
+        GenericArray::clone_from_slice(
+            &hex::decode("8e73b0f7da0e6452c810f32b809079e562f8ead2522c6b7b").unwrap(),
+        ),
     );
     impl_test_block_de!(cipher : "bd334f1d6e45f25ff712a214571fa5cc" => "6bc1bee22e409f96e93d7e117393172a");
     impl_test_block_de!(cipher : "974104846d0ad3ad7734ecb3ecee4eef" => "ae2d8a571e03ac9c9eb76fac45af8e51");
@@ -135,10 +135,10 @@ pub fn test() {
 
     let mut cipher = ElectronicCodeBook::<crate::aes::AES256, crate::padding::PKCS7>::new(
         GenericArray::clone_from_slice(&hex::decode("00000000000000000000000000000000").unwrap()),
-        GenericArray::clone_from_slice(&[
-            0x603deb10, 0x15ca71be, 0x2b73aef0, 0x857d7781, 0x1f352c07, 0x3b6108d7, 0x2d9810a3,
-            0x0914dff4,
-        ]),
+        GenericArray::clone_from_slice(
+            &hex::decode("603deb1015ca71be2b73aef0857d77811f352c073b6108d72d9810a30914dff4")
+                .unwrap(),
+        ),
     );
     impl_test_block_en!(cipher : "6bc1bee22e409f96e93d7e117393172a" => "f3eed1bdb5d2a03c064b5a7e3db181f8");
     impl_test_block_en!(cipher : "ae2d8a571e03ac9c9eb76fac45af8e51" => "591ccb10d410ed26dc5ba74a31362870");
@@ -147,10 +147,10 @@ pub fn test() {
 
     let mut cipher = ElectronicCodeBook::<crate::aes::AES256, crate::padding::PKCS7>::new(
         GenericArray::clone_from_slice(&hex::decode("00000000000000000000000000000000").unwrap()),
-        GenericArray::clone_from_slice(&[
-            0x603deb10, 0x15ca71be, 0x2b73aef0, 0x857d7781, 0x1f352c07, 0x3b6108d7, 0x2d9810a3,
-            0x0914dff4,
-        ]),
+        GenericArray::clone_from_slice(
+            &hex::decode("603deb1015ca71be2b73aef0857d77811f352c073b6108d72d9810a30914dff4")
+                .unwrap(),
+        ),
     );
     impl_test_block_de!(cipher : "f3eed1bdb5d2a03c064b5a7e3db181f8" => "6bc1bee22e409f96e93d7e117393172a");
     impl_test_block_de!(cipher : "591ccb10d410ed26dc5ba74a31362870" => "ae2d8a571e03ac9c9eb76fac45af8e51");

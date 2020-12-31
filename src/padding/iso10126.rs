@@ -16,7 +16,7 @@ impl Padding for ISO10126 {
 #[test]
 #[rustfmt::skip]
 fn test() {
-    assert_eq!(*ISO10126::pad_eat(vec![0xFF; 8], 8).last().unwrap(), 0xFF);
+    assert_eq!(*ISO10126::pad_eat(vec![0xFF; 8], 8).last().unwrap(), 0x08);
     assert_eq!(*ISO10126::pad_eat(vec![0xFF; 1], 8).last().unwrap(), 0x07);
     assert_eq!(*ISO10126::pad_eat(vec![0xFF; 2], 8).last().unwrap(), 0x06);
     assert_eq!(*ISO10126::pad_eat(vec![0xFF; 3], 8).last().unwrap(), 0x05);

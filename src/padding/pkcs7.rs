@@ -11,7 +11,9 @@ impl Padding for PKCS7 {
 #[cfg(test)]
 #[test]
 #[rustfmt::skip]
+#[allow(clippy::identity_op)]
 fn test() {
+    assert_eq!(PKCS7::pad_block(0, 8), vec![0x08 - 0x00; 0x08 - 0x00]);
     assert_eq!(PKCS7::pad_block(1, 8), vec![0x08 - 0x01; 0x08 - 0x01]);
     assert_eq!(PKCS7::pad_block(2, 8), vec![0x08 - 0x02; 0x08 - 0x02]);
     assert_eq!(PKCS7::pad_block(3, 8), vec![0x08 - 0x03; 0x08 - 0x03]);
@@ -19,7 +21,8 @@ fn test() {
     assert_eq!(PKCS7::pad_block(5, 8), vec![0x08 - 0x05; 0x08 - 0x05]);
     assert_eq!(PKCS7::pad_block(6, 8), vec![0x08 - 0x06; 0x08 - 0x06]);
     assert_eq!(PKCS7::pad_block(7, 8), vec![0x08 - 0x07; 0x08 - 0x07]);
-    assert_eq!(&PKCS7::pad_eat(vec![0xFF; 8], 8), b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF");
+    assert_eq!(&PKCS7::pad_eat(vec![0xFF; 0], 8), b"\x08\x08\x08\x08\x08\x08\x08\x08");
+    assert_eq!(&PKCS7::pad_eat(vec![0xFF; 8], 8), b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x08\x08\x08\x08\x08\x08\x08\x08");
     assert_eq!(&PKCS7::pad_eat(vec![0xFF; 1], 8), b"\xFF\x07\x07\x07\x07\x07\x07\x07");
     assert_eq!(&PKCS7::pad_eat(vec![0xFF; 2], 8), b"\xFF\xFF\x06\x06\x06\x06\x06\x06");
     assert_eq!(&PKCS7::pad_eat(vec![0xFF; 3], 8), b"\xFF\xFF\xFF\x05\x05\x05\x05\x05");

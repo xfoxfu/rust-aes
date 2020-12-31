@@ -14,7 +14,8 @@ impl Padding for X923 {
 #[test]
 #[rustfmt::skip]
 fn test() {
-    assert_eq!(&X923::pad_eat(vec![0xFF; 8], 8), b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF");
+    assert_eq!(&X923::pad_eat(vec![0xFF; 0], 8), b"\x00\x00\x00\x00\x00\x00\x00\x08");
+    assert_eq!(&X923::pad_eat(vec![0xFF; 8], 8), b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x00\x00\x00\x00\x00\x00\x00\x08");
     assert_eq!(&X923::pad_eat(vec![0xFF; 1], 8), b"\xFF\x00\x00\x00\x00\x00\x00\x07");
     assert_eq!(&X923::pad_eat(vec![0xFF; 2], 8), b"\xFF\xFF\x00\x00\x00\x00\x00\x06");
     assert_eq!(&X923::pad_eat(vec![0xFF; 3], 8), b"\xFF\xFF\xFF\x00\x00\x00\x00\x05");
