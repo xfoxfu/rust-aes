@@ -25,9 +25,9 @@ pub struct Opts {
     /// IV in hex format.
     #[clap(short, long, default_value = "-")]
     pub iv: String,
-    /// Encode output with base64.
+    /// Indicates input and output are hex strings.
     #[clap(short = 'a', long)]
-    pub base64: bool,
+    pub hex: bool,
     /// Log verbosity. May be used multiple times.
     #[clap(short, long, parse(from_occurrences))]
     pub verbose: i32,

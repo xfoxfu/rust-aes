@@ -2,7 +2,7 @@
 
 use std::{
     fs::File,
-    io::{Read, Write},
+    io::{stdin, stdout, Read, Write},
 };
 
 mod aes;
@@ -14,19 +14,33 @@ fn main() -> anyhow::Result<()> {
     let opts = opt::Opts::parse();
 
     let mut input = Vec::new();
-    File::open(&opts.input)?.read_to_end(&mut input)?;
+    if opts.input != "-" {
+        File::open(&opts.input)?.read_to_end(&mut input)?;
+    } else {
+        stdin().read_to_end(&mut input)?;
+    }
+    if opts.hex {
+        input = hex::decode(String::from_utf8(input)?.trim())?;
+    }
 
     let key = hex::decode(&opts.key)?;
     let iv = hex::decode(&opts.iv)?;
 
     let mut cipher = opts.mode.get_cipher(&key, &iv);
-    let result = if opts.is_encrypt() {
+    let mut result = if opts.is_encrypt() {
         cipher.encrypt(&input)
     } else {
         cipher.decrypt(&input)
     };
 
-    File::create(&opts.output)?.write_all(&result)?;
+    if opts.hex {
+        result = hex::encode(&result).as_bytes().to_vec();
+    }
+    if opts.output != "-" {
+        File::create(&opts.output)?.write_all(&result)?;
+    } else {
+        stdout().write_all(&result)?;
+    }
 
     Ok(())
 }
