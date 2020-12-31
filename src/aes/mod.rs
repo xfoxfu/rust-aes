@@ -12,6 +12,7 @@ mod encrypt;
 pub use encrypt::{RijndaelCryptor, State};
 
 mod converter;
-use converter::{
-    byte_to_word, matrix_to_words, rot_word, sub_word, word_to_bytes, words_to_matrix,
+pub use converter::{
+    byte_to_word, bytes_to_word_arr, matrix_to_words, rot_word, sub_word, word_to_bytes,
+    words_to_matrix,
 };

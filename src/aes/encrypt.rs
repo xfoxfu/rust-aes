@@ -111,7 +111,6 @@ where
         Prod<M::NrKey, M::NbWords>: ArrayLength<u32>,
     {
         assert_eq!(input.len(), M::NbWords::to_usize() * 4);
-        assert_eq!(key.len(), M::NkWords::to_usize() * M::NrKey::to_usize() * 4);
         let mut input_arr = GenericArray::default();
         for i in 0..M::NbWords::to_usize() {
             input_arr[i] = byte_to_word(&[
@@ -248,7 +247,6 @@ where
         self.add_round_key(M::Nr::to_usize() + 1);
 
         for i in (0..M::Nr::to_usize()).rev() {
-            dbg!(i + 1);
             self.inv_shift_rows();
             self.inv_sub_bytes();
             self.add_round_key(i + 1);
@@ -405,4 +403,9 @@ pub fn test_rijndael_enc() {
     _make_test!(super::AES128, "90f42ec0f68385f2ffc5dfc03a654dce", "00000000000000000000000000000000", "7a20a53d460fc9ce0423a7a0764c6cf2");
     _make_test!(super::AES128, "febd9a24d8b65c1c787d50a4ed3619a9", "00000000000000000000000000000000", "f4a70d8af877f9b02b4c40df57d45b17");
     // find more test cases from https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Algorithm-Validation-Program/documents/aes/AESAVS.pdf
+    // the following is from https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197.pdf
+    _make_test!(super::AES128, "000102030405060708090a0b0c0d0e0f", "00112233445566778899aabbccddeeff", "69c4e0d86a7b0430d8cdb78070b4c55a");
+    _make_test!(super::AES192, "000102030405060708090a0b0c0d0e0f1011121314151617", "00112233445566778899aabbccddeeff", "dda97ca4864cdfe06eaf70a0ec0d7191");
+    _make_test!(super::AES256, "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f", "00112233445566778899aabbccddeeff", "8ea2b7ca516745bfeafc49904b496089");
+    _make_test!(super::AES128, "2b7e151628aed2a6abf7158809cf4f3c", "6bc1bee22e409f96e93d7e117393172a", "3ad77bb40d7a3660a89ecaf32466ef97");
 }

@@ -12,5 +12,8 @@ pub trait Padding {
 }
 
 mod ansix923;
+pub use ansix923::X923;
 mod iso10126;
+pub use iso10126::ISO10126;
 mod pkcs7;
+pub use pkcs7::PKCS7;

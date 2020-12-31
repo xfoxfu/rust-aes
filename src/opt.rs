@@ -1,3 +1,5 @@
+use crate::aes::{AES128, AES192, AES256};
+use crate::stream::{CipherBlockChaining, Streamer};
 use clap::{crate_authors, crate_version, Clap};
 
 /// This doc string acts as a help message when the user runs '--help'
@@ -19,7 +21,10 @@ pub struct Opts {
     verbose: i32,
     /// Operation mode, `encrypt` or `decrypt`
     #[clap(short, long)]
-    mode: Mode,
+    op: Operation,
+    // /// AES / Rijndael Modes
+    // #[clap(short, long)]
+    // mode: Box<dyn StreamCipher>,
 }
 
 impl Opts {
@@ -28,27 +33,27 @@ impl Opts {
     }
 
     pub fn is_encrypt(&self) -> bool {
-        match self.mode {
-            Mode::Encrypt => true,
-            Mode::Decrypt => false,
+        match self.op {
+            Operation::Encrypt => true,
+            Operation::Decrypt => false,
         }
     }
 
     pub fn is_decrypt(&self) -> bool {
-        match self.mode {
-            Mode::Encrypt => false,
-            Mode::Decrypt => true,
+        match self.op {
+            Operation::Encrypt => false,
+            Operation::Decrypt => true,
         }
     }
 }
 
 #[derive(Debug)]
-pub enum Mode {
+pub enum Operation {
     Encrypt,
     Decrypt,
 }
 
-impl std::str::FromStr for Mode {
+impl std::str::FromStr for Operation {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -62,3 +67,39 @@ impl std::str::FromStr for Mode {
         }
     }
 }
+
+pub trait StreamCipher {
+    fn new(key: &[u8], iv: &[u8]) -> Self
+    where
+        Self: Sized;
+    fn encrypt(&mut self, data: &[u8]) -> Vec<u8>;
+    fn decrypt(&mut self, data: &[u8]) -> Vec<u8>;
+}
+
+macro_rules! impl_cipherset {
+    ($vis: vis $name: ident => $m: ident, $st: ident, $pad: ident) => {
+        $vis struct $name($st<$m>);
+
+        impl StreamCipher for $name {
+            fn new(key: &[u8], iv: &[u8]) -> Self
+            where
+                Self: Sized,
+            {
+                Self($st::<$m>::new(
+                    generic_array::GenericArray::clone_from_slice(key),
+                    generic_array::GenericArray::clone_from_slice(iv),
+                ))
+            }
+
+            fn encrypt(&mut self, data: &[u8]) -> Vec<u8> {
+                todo!()
+            }
+
+            fn decrypt(&mut self, data: &[u8]) -> Vec<u8> {
+                todo!()
+            }
+        }
+    };
+}
+
+// impl_cipherset!(pub AES128CBCPKCS7 => AES128, CipherBlockChaining, PKCS7Padding);

@@ -113,3 +113,16 @@ fn test_matrix_to_words() {
         GenericArray::clone_from_slice(&[0x12345678, 0x89ABCDEF, 0x42424242, 0x66CCFF00])
     );
 }
+
+pub fn bytes_to_word_arr<L: Unsigned>(arr: GenericArray<u8, Prod<L, U4>>) -> GenericArray<u32, L>
+where
+    L: std::ops::Mul<nalgebra::U4>,
+    Prod<L, U4>: generic_array::ArrayLength<u8>,
+    L: generic_array::ArrayLength<u32>,
+{
+    let mut ret = GenericArray::<u32, L>::default();
+    for i in 0..L::to_usize() {
+        ret[i] = byte_to_word(&[arr[i * 4], arr[i * 4 + 1], arr[i * 4 + 2], arr[i * 4 + 3]]);
+    }
+    ret
+}
