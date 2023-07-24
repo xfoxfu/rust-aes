@@ -1,32 +1,34 @@
-use nalgebra::NamedDim;
-use typenum::Unsigned;
+use nalgebra::SMatrix;
 
-pub trait RijndaelMode {
+pub trait RijndaelMode
+{
     /// key length
-    type NkWords: Unsigned + NamedDim;
+    const NK_WORDS: usize;
     /// block size
-    type NbWords: Unsigned + NamedDim;
+    const NB_WORDS: usize;
     /// round key size (which equals `max(Nk, Nb) + 7`)
-    type NrKey: Unsigned + NamedDim;
+    const NR_KEY: usize;
     /// round count (which equals `max(Nk, Nb) + 5`)
-    type Nr: Unsigned + NamedDim;
+    const NR: usize;
+
+    // type State = SMatrix<u8, 4, { Self::NB_WORDS }> where [(); Self::NB_WORDS]:;
 }
 
 macro_rules! impl_length_mode {
-    ($s:ident, $nk:ty, $nb:ty) => {
+    ($s:ident, $nk:literal, $nb:literal) => {
         pub struct $s;
 
         impl crate::aes::RijndaelMode for $s {
-            type NkWords = $nk;
-            type NbWords = $nb;
+            const NK_WORDS: usize = $nk;
+            const NB_WORDS: usize = $nb;
             // the following are trick to address unstable associated default types
             // https://github.com/rust-lang/rust/issues/29661
-            type NrKey = typenum::Sum<typenum::Maximum<$nk, $nb>, typenum::U7>;
-            type Nr = typenum::Sum<typenum::Maximum<$nk, $nb>, typenum::U5>;
+            const NR_KEY: usize = crate::max($nk, $nb) + 7;
+            const NR: usize = crate::max($nk, $nb) + 5;
         }
     };
 }
 
-impl_length_mode!(AES128, typenum::U4, typenum::U4);
-impl_length_mode!(AES192, typenum::U6, typenum::U4);
-impl_length_mode!(AES256, typenum::U8, typenum::U4);
+impl_length_mode!(AES128, 4, 4);
+impl_length_mode!(AES192, 6, 4);
+impl_length_mode!(AES256, 8, 4);

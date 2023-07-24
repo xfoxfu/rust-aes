@@ -1,8 +1,4 @@
 use super::{encrypt::State, sbox_get, RijndaelMode};
-use generic_array::{ArrayLength, GenericArray};
-use nalgebra::{allocator::Allocator, DefaultAllocator, MatrixMN, NamedDim, U4};
-use std::ops::Mul;
-use typenum::{Prod, Unsigned};
 
 pub fn byte_to_word(bs: &[u8; 4]) -> u32 {
     ((bs[0] as u32) << 24) | ((bs[1] as u32) << 16) | ((bs[2] as u32) << 8) | bs[3] as u32
@@ -54,13 +50,9 @@ fn test_word_to_bytes() {
     assert_eq!(word_to_bytes(0x89ABCDEF), (0x89, 0xAB, 0xCD, 0xEF));
 }
 
-pub fn words_to_matrix<M: RijndaelMode>(input: &GenericArray<u32, M::NbWords>) -> State<M>
-where
-    M::NbWords: ArrayLength<u32>,
-    DefaultAllocator: Allocator<u8, U4, <M::NbWords as NamedDim>::Name>,
-{
+pub fn words_to_matrix<M: RijndaelMode>(input: &[u32; M::NB_WORDS]) -> State<M> {
     let mut state = State::<M>::zeros();
-    for i in 0..M::NbWords::to_usize() {
+    for i in 0..M::NB_WORDS {
         let (b0, b1, b2, b3) = word_to_bytes(input[i]);
         state[(0, i)] = b0;
         state[(1, i)] = b1;
@@ -75,9 +67,9 @@ where
 fn test_words_to_matrix() {
     use super::AES128;
     assert_eq!(
-        words_to_matrix::<AES128>(GenericArray::from_slice(&[
+        words_to_matrix::<AES128>(&[
             0x12345678, 0x89ABCDEF, 0x42424242, 0x66CCFF00
-        ])),
+        ]),
         State::<AES128>::from_column_slice(&[
             0x12, 0x34, 0x56, 0x78, // col 0
             0x89, 0xAB, 0xCD, 0xEF, // col 1
@@ -87,13 +79,9 @@ fn test_words_to_matrix() {
     );
 }
 
-pub fn matrix_to_words<M: RijndaelMode>(state: &State<M>) -> GenericArray<u32, M::NbWords>
-where
-    M::NbWords: ArrayLength<u32>,
-    DefaultAllocator: Allocator<u8, U4, <M::NbWords as NamedDim>::Name>,
-{
-    let mut output = GenericArray::default();
-    for i in 0..M::NbWords::to_usize() {
+pub fn matrix_to_words<M: RijndaelMode>(state: &State<M>) -> [u32; M::NB_WORDS] {
+    let mut output = [0;M::NB_WORDS];
+    for i in 0..M::NB_WORDS {
         output[i] = byte_to_word(&[state[(0, i)], state[(1, i)], state[(2, i)], state[(3, i)]]);
     }
     output
@@ -110,18 +98,13 @@ fn test_matrix_to_words() {
             0x42, 0x42, 0x42, 0x42, // col 2
             0x66, 0xCC, 0xFF, 0x00, // col 3
         ])),
-        GenericArray::clone_from_slice(&[0x12345678, 0x89ABCDEF, 0x42424242, 0x66CCFF00])
+        [0x12345678, 0x89ABCDEF, 0x42424242, 0x66CCFF00]
     );
 }
 
-pub fn bytes_to_word_arr<L: Unsigned>(arr: GenericArray<u8, Prod<L, U4>>) -> GenericArray<u32, L>
-where
-    L: std::ops::Mul<nalgebra::U4>,
-    Prod<L, U4>: generic_array::ArrayLength<u8>,
-    L: generic_array::ArrayLength<u32>,
-{
-    let mut ret = GenericArray::<u32, L>::default();
-    for i in 0..L::to_usize() {
+pub fn bytes_to_word_arr<const L: usize>(arr: [u8; L * 4]) -> [u32; L] {
+    let mut ret = [0;L];
+    for i in 0..L {
         ret[i] = byte_to_word(&[arr[i * 4], arr[i * 4 + 1], arr[i * 4 + 2], arr[i * 4 + 3]]);
     }
     ret

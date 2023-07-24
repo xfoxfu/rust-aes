@@ -1,3 +1,6 @@
+#![feature(generic_const_exprs)]
+#![feature(associated_type_defaults)]
+
 //! https://songlee24.github.io/2014/12/13/aes-encrypt/
 
 use std::{
@@ -9,6 +12,10 @@ mod aes;
 mod opt;
 mod padding;
 mod stream;
+
+const fn max(a: usize, b: usize) -> usize {
+    [a, b][(a < b) as usize]
+}
 
 fn main() -> anyhow::Result<()> {
     let opts = opt::Opts::parse();

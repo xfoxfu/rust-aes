@@ -6,11 +6,11 @@ use crate::{
     aes::{AES128, AES192, AES256},
     stream::ElectronicCodeBook,
 };
-use clap::{crate_authors, crate_version, Clap};
+use clap::{crate_authors, crate_version, Parser};
 
 /// This doc string acts as a help message when the user runs '--help'
 /// as do all doc strings on fields
-#[derive(Clap, Debug)]
+#[derive(Parser, Debug)]
 #[clap(version = crate_version!(), author = crate_authors!())]
 pub struct Opts {
     /// Input file name, use a `-` for standard input
@@ -41,7 +41,7 @@ pub struct Opts {
 
 impl Opts {
     pub fn parse() -> Self {
-        Clap::parse()
+        Parser::parse()
     }
 
     pub fn is_encrypt(&self) -> bool {
@@ -93,13 +93,14 @@ macro_rules! impl_cipherset {
         $vis struct $name($st<$m, $pad>);
 
         impl StreamCipher for $name {
+
             fn new(key: &[u8], iv: &[u8]) -> Self
             where
                 Self: Sized,
             {
                 Self($st::<$m, $pad>::new(
-                    generic_array::GenericArray::clone_from_slice(iv),
-                    generic_array::GenericArray::clone_from_slice(key),
+                    std::convert::TryInto::try_into(iv).unwrap(),
+                    std::convert::TryInto::try_into(key).unwrap(),
                 ))
             }
 

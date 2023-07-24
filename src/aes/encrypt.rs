@@ -4,10 +4,8 @@ use super::{
     key_expansion::KeyExpander,
     matrix_to_words, words_to_matrix, RijndaelMode,
 };
-use generic_array::{ArrayLength, GenericArray, GenericArrayImplEven};
-use nalgebra::{allocator::Allocator, DefaultAllocator, MatrixMN, NamedDim, U4};
-use std::ops::Mul;
-use typenum::{Prod, Unsigned};
+use nalgebra::{allocator::Allocator, DefaultAllocator, SMatrix};
+use std::{convert::TryInto, ops::Mul};
 
 pub fn galois_mul(mut a: u8, mut b: u8) -> u8 {
     // Galois Field (256) Multiplication of two Bytes
@@ -29,58 +27,48 @@ pub fn galois_mul(mut a: u8, mut b: u8) -> u8 {
     p
 }
 
-pub type State<M> = MatrixMN<u8, nalgebra::U4, <<M as RijndaelMode>::NbWords as NamedDim>::Name>;
+pub type State<M: RijndaelMode> = SMatrix<u8, 4, { <M as RijndaelMode>::NB_WORDS }>;
 
 pub struct RijndaelCryptor<M: RijndaelMode>
 where
-    M::NrKey: ArrayLength<State<M>>,
-    DefaultAllocator: Allocator<u8, U4, <M::NbWords as NamedDim>::Name>,
+    [(); M::NB_WORDS]:,
+    [(); M::NR_KEY]:,
 {
     state: State<M>,
-    keys: GenericArray<State<M>, M::NrKey>,
+    keys: [State<M>; M::NR_KEY],
 }
 
 impl<M: RijndaelMode> RijndaelCryptor<M>
 where
-    M::NrKey: ArrayLength<State<M>>,
-    DefaultAllocator: Allocator<u8, U4, <M::NbWords as NamedDim>::Name>,
+    [(); M::NB_WORDS]:,
+    [(); M::NR_KEY]:,
+    [(); M::NR_KEY * M::NB_WORDS]:,
+    [(); M::NK_WORDS]:,
+    [(); M::NK_WORDS * 4]:,
 {
-    pub fn new(
-        input: &GenericArray<u32, M::NbWords>,
-        key: &GenericArray<u32, Prod<M::NrKey, M::NbWords>>,
-    ) -> Self
-    where
-        M::NbWords: ArrayLength<u32>,
-        M::NrKey: Mul<M::NbWords>,
-        Prod<M::NrKey, M::NbWords>: ArrayLength<u32>,
-    {
+    pub fn new(input: &[u32; M::NB_WORDS], key: &[u32; M::NR_KEY * M::NB_WORDS]) -> Self {
         let state = words_to_matrix::<M>(input);
-        let keys = GenericArray::from_exact_iter((0..key.len()).step_by(4).map(|i| {
-            words_to_matrix::<M>(GenericArray::from_slice(&[
-                key[i],
-                key[i + 1],
-                key[i + 2],
-                key[i + 3],
-            ]))
-        }))
-        .unwrap();
+        let mut keys = [SMatrix::zeros(); M::NR_KEY];
+        // (0..key.len()).step_by(4).map(|i| {
+        //     words_to_matrix::<M>(
+        //         &[key[i], key[i + 1], key[i + 2], key[i + 3]]
+        //             .try_into()
+        //             .unwrap(),
+        //     )
+        // });
+        for i in 0..M::NR_KEY {
+            keys[i] =
+                words_to_matrix::<M>(&key[(i * 4)..(i * 4 + M::NB_WORDS)].try_into().unwrap());
+        }
         Self { state, keys }
     }
 
-    pub fn new_with_raw_data(input: &[u8], key: &[u8]) -> Self
-    where
-        M::NkWords: ArrayLength<u32>,
-        M::NkWords: Mul<typenum::U4>,
-        Prod<M::NkWords, typenum::U4>: generic_array::ArrayLength<u8>,
-        M::NbWords: ArrayLength<u32>,
-        M::NrKey: Mul<M::NbWords>,
-        Prod<M::NrKey, M::NbWords>: ArrayLength<u32>,
-    {
-        assert_eq!(input.len(), M::NbWords::to_usize() * 4);
-        assert_eq!(key.len(), M::NkWords::to_usize() * 4);
-        let mut input_arr = GenericArray::default();
-        let mut key_arr = GenericArray::<u32, M::NbWords>::default();
-        for i in 0..M::NbWords::to_usize() {
+    pub fn new_with_raw_data(input: &[u8], key: &[u8]) -> Self {
+        assert_eq!(input.len(), M::NB_WORDS * 4);
+        assert_eq!(key.len(), M::NK_WORDS * 4);
+        let mut input_arr = [0; M::NB_WORDS];
+        let mut key_arr = [0; M::NB_WORDS];
+        for i in 0..M::NB_WORDS {
             input_arr[i] = byte_to_word(&[
                 input[i * 4],
                 input[i * 4 + 1],
@@ -88,31 +76,20 @@ where
                 input[i * 4 + 3],
             ]);
         }
-        for i in 0..M::NbWords::to_usize() {
+        for i in 0..M::NB_WORDS {
             key_arr[i] =
                 byte_to_word(&[key[i * 4], key[i * 4 + 1], key[i * 4 + 2], key[i * 4 + 3]]);
         }
         let key_arr = KeyExpander::<M>::key_expansion(&KeyExpander::<M>::convert_key(
-            GenericArray::from_slice(&key),
+            key.try_into().unwrap(),
         ));
         Self::new(&input_arr, &key_arr)
     }
 
-    pub fn new_with_raw_data_key(
-        input: &[u8],
-        key: &GenericArray<u32, Prod<M::NrKey, M::NbWords>>,
-    ) -> Self
-    where
-        M::NkWords: ArrayLength<u32>,
-        M::NkWords: Mul<typenum::U4>,
-        Prod<M::NkWords, typenum::U4>: generic_array::ArrayLength<u8>,
-        M::NbWords: ArrayLength<u32>,
-        M::NrKey: Mul<M::NbWords>,
-        Prod<M::NrKey, M::NbWords>: ArrayLength<u32>,
-    {
-        assert_eq!(input.len(), M::NbWords::to_usize() * 4);
-        let mut input_arr = GenericArray::default();
-        for i in 0..M::NbWords::to_usize() {
+    pub fn new_with_raw_data_key(input: &[u8], key: &[u32; M::NR_KEY * M::NB_WORDS]) -> Self {
+        assert_eq!(input.len(), M::NB_WORDS * 4);
+        let mut input_arr = [0; M::NB_WORDS];
+        for i in 0..M::NB_WORDS {
             input_arr[i] = byte_to_word(&[
                 input[i * 4],
                 input[i * 4 + 1],
@@ -220,13 +197,10 @@ where
         }
     }
 
-    pub fn encrypt(mut self) -> GenericArray<u32, M::NbWords>
-    where
-        M::NbWords: ArrayLength<u32>,
-    {
+    pub fn encrypt(mut self) -> [u32; M::NB_WORDS] {
         self.add_round_key(0);
 
-        for i in 0..M::Nr::to_usize() {
+        for i in 0..M::NR {
             self.sub_bytes();
             self.shift_rows();
             self.mix_columns();
@@ -235,18 +209,15 @@ where
 
         self.sub_bytes();
         self.shift_rows();
-        self.add_round_key(M::Nr::to_usize() + 1);
+        self.add_round_key(M::NR + 1);
 
         matrix_to_words::<M>(&self.state)
     }
 
-    pub fn decrypt(mut self) -> GenericArray<u32, M::NbWords>
-    where
-        M::NbWords: ArrayLength<u32>,
-    {
-        self.add_round_key(M::Nr::to_usize() + 1);
+    pub fn decrypt(mut self) -> [u32; M::NB_WORDS] {
+        self.add_round_key(M::NR + 1);
 
-        for i in (0..M::Nr::to_usize()).rev() {
+        for i in (0..M::NR).rev() {
             self.inv_shift_rows();
             self.inv_sub_bytes();
             self.add_round_key(i + 1);
@@ -260,14 +231,9 @@ where
         matrix_to_words::<M>(&self.state)
     }
 
-    pub fn encrypt_to_arr(self) -> GenericArray<u8, Prod<M::NbWords, typenum::U4>>
-    where
-        M::NbWords: ArrayLength<u32>,
-        M::NbWords: std::ops::Mul<typenum::U4>,
-        Prod<M::NbWords, typenum::U4>: ArrayLength<u8>,
-    {
+    pub fn encrypt_to_arr(self) -> [u8; M::NB_WORDS * 4] {
         let res = self.encrypt();
-        let mut ret = GenericArray::default();
+        let mut ret = [0; M::NB_WORDS * 4];
         for i in 0..res.len() {
             let (r0, r1, r2, r3) = word_to_bytes(res[i]);
             ret[i * 4] = r0;
@@ -278,14 +244,9 @@ where
         ret
     }
 
-    pub fn decrypt_to_arr(self) -> GenericArray<u8, Prod<M::NbWords, typenum::U4>>
-    where
-        M::NbWords: ArrayLength<u32>,
-        M::NbWords: std::ops::Mul<typenum::U4>,
-        Prod<M::NbWords, typenum::U4>: ArrayLength<u8>,
-    {
+    pub fn decrypt_to_arr(self) -> [u8; M::NB_WORDS * 4] {
         let res = self.decrypt();
-        let mut ret = GenericArray::default();
+        let mut ret = [0; M::NB_WORDS * 4];
         for i in 0..res.len() {
             let (r0, r1, r2, r3) = word_to_bytes(res[i]);
             ret[i * 4] = r0;

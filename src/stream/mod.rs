@@ -1,23 +1,20 @@
-use crate::{aes::RijndaelMode, padding::Padding};
-use generic_array::GenericArray;
-use typenum::Prod;
+use std::convert::TryInto;
 
-type Block<M> = GenericArray<u8, Prod<<M as RijndaelMode>::NbWords, typenum::U4>>;
+use crate::{aes::RijndaelMode, padding::Padding};
+
+type Block<M: RijndaelMode> = [u8; <M as RijndaelMode>::NB_WORDS * 4];
+type KeyBlock<M: RijndaelMode> = [u8; <M as RijndaelMode>::NK_WORDS * 4];
 
 pub trait Streamer<M: RijndaelMode, P: Padding>
 where
-    M::NbWords: std::ops::Mul<typenum::U4>,
-    Prod<M::NbWords, typenum::U4>: generic_array::ArrayLength<u8>,
-    M::NrKey: std::ops::Mul<M::NbWords>,
-    Prod<M::NrKey, M::NbWords>: generic_array::ArrayLength<u32>,
+    [(); <M as RijndaelMode>::NB_WORDS * 4]:,
+    [(); M::NR_KEY * M::NB_WORDS]:,
+    [(); M::NK_WORDS]:,
+    [(); M::NK_WORDS * 4]:
 {
-    fn new(iv: Block<M>, key: GenericArray<u8, Prod<M::NkWords, typenum::U4>>) -> Self
+    fn new(iv: Block<M>, key: KeyBlock<M>) -> Self
     where
         Self: Sized,
-        M::NkWords: generic_array::ArrayLength<u8>,
-        M::NkWords: generic_array::ArrayLength<u32>,
-        M::NkWords: std::ops::Mul<typenum::U4>,
-        Prod<M::NkWords, typenum::U4>: generic_array::ArrayLength<u8>,
     {
         Self::new_with_ext_key(
             iv,
@@ -26,33 +23,31 @@ where
             ),
         )
     }
-    fn new_with_ext_key(iv: Block<M>, key: GenericArray<u32, Prod<M::NrKey, M::NbWords>>) -> Self;
+    fn new_with_ext_key(iv: Block<M>, key: [u32; M::NR_KEY * M::NB_WORDS]) -> Self;
 
     fn stream_encrypt_iter(&mut self, data: &Block<M>) -> Block<M>;
     fn stream_decrypt_iter(&mut self, data: &Block<M>) -> Block<M>;
 
     fn stream_encrypt(&mut self, data: &[u8]) -> Vec<u8> {
-        use typenum::Unsigned;
-        let data = P::pad_eat(data.to_owned(), M::NbWords::to_usize() * 4);
+        let data = P::pad_eat(data.to_owned(), M::NB_WORDS * 4);
         let mut result = Vec::new();
-        for bid in (0..data.len()).step_by(M::NbWords::to_usize() * 4) {
-            let bout = self.stream_encrypt_iter(GenericArray::from_slice(
-                &data[bid..(bid + M::NbWords::to_usize() * 4)],
-            ));
+        for bid in (0..data.len()).step_by(M::NB_WORDS * 4) {
+            let bout = self.stream_encrypt_iter(
+                &data[bid..(bid + M::NB_WORDS * 4)].try_into().unwrap(),
+            );
             result = [result, bout.to_vec()].concat();
         }
         result
     }
     fn stream_decrypt(&mut self, data: &[u8]) -> Vec<u8> {
-        use typenum::Unsigned;
         let mut result = Vec::new();
-        for bid in (0..data.len()).step_by(M::NbWords::to_usize() * 4) {
-            let bout = self.stream_decrypt_iter(GenericArray::from_slice(
-                &data[bid..(bid + M::NbWords::to_usize() * 4)],
-            ));
+        for bid in (0..data.len()).step_by(M::NB_WORDS * 4) {
+            let bout = self.stream_decrypt_iter(
+                &data[bid..(bid + M::NB_WORDS * 4)].try_into().unwrap(),
+            );
             result = [result, bout.to_vec()].concat();
         }
-        P::unpad_eat(result, M::NbWords::to_usize() * 4)
+        P::unpad_eat(result, M::NB_WORDS * 4)
     }
 }
 
