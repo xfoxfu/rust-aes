@@ -8,7 +8,7 @@ use std::marker::PhantomData;
 pub struct CipherBlockChaining<M: RijndaelMode, P: Padding>
 where
     [(); M::NR_KEY * M::NB_WORDS]:,
-    [(); <M as RijndaelMode>::NB_WORDS * 4]:,
+    [(); M::NB_WORDS * 4]:,
 {
     key: [u32; M::NR_KEY * M::NB_WORDS],
     acc: Block<M>,
@@ -18,9 +18,8 @@ where
 impl<M: RijndaelMode, P: Padding> Streamer<M, P> for CipherBlockChaining<M, P>
 where
     [(); M::NR_KEY * M::NB_WORDS]:,
-    [(); <M as RijndaelMode>::NB_WORDS * 4]:,
-    [(); M::NK_WORDS]:,
-    [(); M::NK_WORDS * 4]:
+    [(); M::NB_WORDS * 4]:,
+    [(); M::NK_WORDS * 4]:,
 {
     fn new_with_ext_key(iv: super::Block<M>, key: [u32; M::NR_KEY * M::NB_WORDS]) -> Self {
         Self {
@@ -98,8 +97,14 @@ pub fn test() {
     impl_test_block_en!(cipher : "f69f2445df4f9b17ad2b417be66c3710" => "3ff1caa1681fac09120eca307586e1a7");
 
     let mut cipher = CipherBlockChaining::<crate::aes::AES128, crate::padding::PKCS7>::new(
-        hex::decode("000102030405060708090a0b0c0d0e0f").unwrap().try_into().unwrap(),
-        hex::decode("2b7e151628aed2a6abf7158809cf4f3c").unwrap().try_into().unwrap(),
+        hex::decode("000102030405060708090a0b0c0d0e0f")
+            .unwrap()
+            .try_into()
+            .unwrap(),
+        hex::decode("2b7e151628aed2a6abf7158809cf4f3c")
+            .unwrap()
+            .try_into()
+            .unwrap(),
     );
     impl_test_block_de!(cipher : "7649abac8119b246cee98e9b12e9197d" => "6bc1bee22e409f96e93d7e117393172a");
     impl_test_block_de!(cipher : "5086cb9b507219ee95db113a917678b2" => "ae2d8a571e03ac9c9eb76fac45af8e51");
@@ -107,8 +112,14 @@ pub fn test() {
     impl_test_block_de!(cipher : "3ff1caa1681fac09120eca307586e1a7" => "f69f2445df4f9b17ad2b417be66c3710");
 
     let mut cipher = CipherBlockChaining::<crate::aes::AES192, crate::padding::PKCS7>::new(
-        hex::decode("000102030405060708090a0b0c0d0e0f").unwrap().try_into().unwrap(),
-        hex::decode("8e73b0f7da0e6452c810f32b809079e562f8ead2522c6b7b").unwrap().try_into().unwrap(),
+        hex::decode("000102030405060708090a0b0c0d0e0f")
+            .unwrap()
+            .try_into()
+            .unwrap(),
+        hex::decode("8e73b0f7da0e6452c810f32b809079e562f8ead2522c6b7b")
+            .unwrap()
+            .try_into()
+            .unwrap(),
     );
     impl_test_block_en!(cipher : "6bc1bee22e409f96e93d7e117393172a" => "4f021db243bc633d7178183a9fa071e8");
     impl_test_block_en!(cipher : "ae2d8a571e03ac9c9eb76fac45af8e51" => "b4d9ada9ad7dedf4e5e738763f69145a");
@@ -116,8 +127,14 @@ pub fn test() {
     impl_test_block_en!(cipher : "f69f2445df4f9b17ad2b417be66c3710" => "08b0e27988598881d920a9e64f5615cd");
 
     let mut cipher = CipherBlockChaining::<crate::aes::AES192, crate::padding::PKCS7>::new(
-        hex::decode("000102030405060708090a0b0c0d0e0f").unwrap().try_into().unwrap(),
-        hex::decode("8e73b0f7da0e6452c810f32b809079e562f8ead2522c6b7b").unwrap().try_into().unwrap(),
+        hex::decode("000102030405060708090a0b0c0d0e0f")
+            .unwrap()
+            .try_into()
+            .unwrap(),
+        hex::decode("8e73b0f7da0e6452c810f32b809079e562f8ead2522c6b7b")
+            .unwrap()
+            .try_into()
+            .unwrap(),
     );
     impl_test_block_de!(cipher : "4f021db243bc633d7178183a9fa071e8" => "6bc1bee22e409f96e93d7e117393172a");
     impl_test_block_de!(cipher : "b4d9ada9ad7dedf4e5e738763f69145a" => "ae2d8a571e03ac9c9eb76fac45af8e51");
@@ -125,8 +142,14 @@ pub fn test() {
     impl_test_block_de!(cipher : "08b0e27988598881d920a9e64f5615cd" => "f69f2445df4f9b17ad2b417be66c3710");
 
     let mut cipher = CipherBlockChaining::<crate::aes::AES256, crate::padding::PKCS7>::new(
-        hex::decode("000102030405060708090a0b0c0d0e0f").unwrap().try_into().unwrap(),
-        hex::decode("603deb1015ca71be2b73aef0857d77811f352c073b6108d72d9810a30914dff4").unwrap().try_into().unwrap(),
+        hex::decode("000102030405060708090a0b0c0d0e0f")
+            .unwrap()
+            .try_into()
+            .unwrap(),
+        hex::decode("603deb1015ca71be2b73aef0857d77811f352c073b6108d72d9810a30914dff4")
+            .unwrap()
+            .try_into()
+            .unwrap(),
     );
     impl_test_block_en!(cipher : "6bc1bee22e409f96e93d7e117393172a" => "f58c4c04d6e5f1ba779eabfb5f7bfbd6");
     impl_test_block_en!(cipher : "ae2d8a571e03ac9c9eb76fac45af8e51" => "9cfc4e967edb808d679f777bc6702c7d");
@@ -134,8 +157,14 @@ pub fn test() {
     impl_test_block_en!(cipher : "f69f2445df4f9b17ad2b417be66c3710" => "b2eb05e2c39be9fcda6c19078c6a9d1b");
 
     let mut cipher = CipherBlockChaining::<crate::aes::AES256, crate::padding::PKCS7>::new(
-        hex::decode("000102030405060708090a0b0c0d0e0f").unwrap().try_into().unwrap(),
-        hex::decode("603deb1015ca71be2b73aef0857d77811f352c073b6108d72d9810a30914dff4").unwrap().try_into().unwrap(),
+        hex::decode("000102030405060708090a0b0c0d0e0f")
+            .unwrap()
+            .try_into()
+            .unwrap(),
+        hex::decode("603deb1015ca71be2b73aef0857d77811f352c073b6108d72d9810a30914dff4")
+            .unwrap()
+            .try_into()
+            .unwrap(),
     );
     impl_test_block_de!(cipher : "f58c4c04d6e5f1ba779eabfb5f7bfbd6" => "6bc1bee22e409f96e93d7e117393172a");
     impl_test_block_de!(cipher : "9cfc4e967edb808d679f777bc6702c7d" => "ae2d8a571e03ac9c9eb76fac45af8e51");

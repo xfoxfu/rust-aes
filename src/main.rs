@@ -1,3 +1,4 @@
+#![allow(incomplete_features)]
 #![feature(generic_const_exprs)]
 #![feature(associated_type_defaults)]
 
@@ -37,6 +38,7 @@ fn main() -> anyhow::Result<()> {
     let mut result = if opts.is_encrypt() {
         cipher.encrypt(&input)
     } else {
+        assert!(opts.is_decrypt());
         cipher.decrypt(&input)
     };
 

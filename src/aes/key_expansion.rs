@@ -5,7 +5,7 @@ pub struct KeyExpander<M: RijndaelMode>(PhantomData<M>);
 
 impl<M: RijndaelMode> KeyExpander<M> {
     pub fn convert_key(raw: &[u8; M::NK_WORDS * 4]) -> [u32; M::NK_WORDS] {
-        let mut r = [0;M::NK_WORDS];
+        let mut r = [0; M::NK_WORDS];
         for i in 0..M::NK_WORDS {
             r[i] = byte_to_word(&[raw[i * 4], raw[i * 4 + 1], raw[i * 4 + 2], raw[i * 4 + 3]]);
         }
@@ -23,7 +23,7 @@ impl<M: RijndaelMode> KeyExpander<M> {
         let b = M::NB_WORDS;
         let r = M::NR_KEY;
 
-        let mut w = [0;M::NR_KEY * M::NB_WORDS];
+        let mut w = [0; M::NR_KEY * M::NB_WORDS];
         for i in 0..(b * r) {
             if i < n {
                 w[i] = k[i];

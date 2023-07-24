@@ -1,5 +1,5 @@
 mod consts;
-use consts::{rcon_get, sbox_get, RCON, S_BOX};
+use consts::{rcon_get, sbox_get};
 
 mod key_expansion;
 pub use key_expansion::KeyExpander;
@@ -13,10 +13,5 @@ pub use encrypt::{RijndaelCryptor, State};
 
 mod converter;
 pub use converter::{
-    byte_to_word, bytes_to_word_arr, matrix_to_words, rot_word, sub_word, word_to_bytes,
-    words_to_matrix,
+    byte_to_word, matrix_to_words, rot_word, sub_word, word_to_bytes, words_to_matrix,
 };
-
-pub fn test<const T:usize>() -> [(); T] {
-    [(); T]
-}

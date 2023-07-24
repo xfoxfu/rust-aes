@@ -1,7 +1,4 @@
-use nalgebra::SMatrix;
-
-pub trait RijndaelMode
-{
+pub trait RijndaelMode {
     /// key length
     const NK_WORDS: usize;
     /// block size
@@ -10,8 +7,6 @@ pub trait RijndaelMode
     const NR_KEY: usize;
     /// round count (which equals `max(Nk, Nb) + 5`)
     const NR: usize;
-
-    // type State = SMatrix<u8, 4, { Self::NB_WORDS }> where [(); Self::NB_WORDS]:;
 }
 
 macro_rules! impl_length_mode {

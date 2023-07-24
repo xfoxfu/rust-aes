@@ -3,6 +3,7 @@ use crate::{
     aes::{RijndaelCryptor, RijndaelMode},
     padding::Padding,
 };
+#[cfg(test)]
 use std::convert::TryInto;
 use std::marker::PhantomData;
 
@@ -43,7 +44,10 @@ where
 macro_rules! impl_test_block_en {
     ($cipher: ident : $in: literal => $out: literal) => {
         assert_eq!(
-            hex::encode($cipher.stream_encrypt_iter(hex::decode($in).unwrap().as_slice().try_into().unwrap())),
+            hex::encode(
+                $cipher
+                    .stream_encrypt_iter(hex::decode($in).unwrap().as_slice().try_into().unwrap())
+            ),
             $out
         );
     };

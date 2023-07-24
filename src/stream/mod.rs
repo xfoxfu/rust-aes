@@ -2,7 +2,9 @@ use std::convert::TryInto;
 
 use crate::{aes::RijndaelMode, padding::Padding};
 
+#[allow(type_alias_bounds)]
 type Block<M: RijndaelMode> = [u8; <M as RijndaelMode>::NB_WORDS * 4];
+#[allow(type_alias_bounds)]
 type KeyBlock<M: RijndaelMode> = [u8; <M as RijndaelMode>::NK_WORDS * 4];
 
 pub trait Streamer<M: RijndaelMode, P: Padding>
@@ -10,7 +12,7 @@ where
     [(); <M as RijndaelMode>::NB_WORDS * 4]:,
     [(); M::NR_KEY * M::NB_WORDS]:,
     [(); M::NK_WORDS]:,
-    [(); M::NK_WORDS * 4]:
+    [(); M::NK_WORDS * 4]:,
 {
     fn new(iv: Block<M>, key: KeyBlock<M>) -> Self
     where
@@ -32,9 +34,8 @@ where
         let data = P::pad_eat(data.to_owned(), M::NB_WORDS * 4);
         let mut result = Vec::new();
         for bid in (0..data.len()).step_by(M::NB_WORDS * 4) {
-            let bout = self.stream_encrypt_iter(
-                &data[bid..(bid + M::NB_WORDS * 4)].try_into().unwrap(),
-            );
+            let bout =
+                self.stream_encrypt_iter(&data[bid..(bid + M::NB_WORDS * 4)].try_into().unwrap());
             result = [result, bout.to_vec()].concat();
         }
         result
@@ -42,9 +43,8 @@ where
     fn stream_decrypt(&mut self, data: &[u8]) -> Vec<u8> {
         let mut result = Vec::new();
         for bid in (0..data.len()).step_by(M::NB_WORDS * 4) {
-            let bout = self.stream_decrypt_iter(
-                &data[bid..(bid + M::NB_WORDS * 4)].try_into().unwrap(),
-            );
+            let bout =
+                self.stream_decrypt_iter(&data[bid..(bid + M::NB_WORDS * 4)].try_into().unwrap());
             result = [result, bout.to_vec()].concat();
         }
         P::unpad_eat(result, M::NB_WORDS * 4)

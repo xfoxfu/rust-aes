@@ -1,11 +1,10 @@
-use super::{
-    consts::{inv_sbox_get, sbox_get},
-    converter::{byte_to_word, word_to_bytes},
-    key_expansion::KeyExpander,
-    matrix_to_words, words_to_matrix, RijndaelMode,
-};
-use nalgebra::{allocator::Allocator, DefaultAllocator, SMatrix};
-use std::{convert::TryInto, ops::Mul};
+use super::consts::{inv_sbox_get, sbox_get};
+use super::converter::{byte_to_word, word_to_bytes};
+#[cfg(test)]
+use super::key_expansion::KeyExpander;
+use super::{matrix_to_words, words_to_matrix, RijndaelMode};
+use nalgebra::SMatrix;
+use std::convert::TryInto;
 
 pub fn galois_mul(mut a: u8, mut b: u8) -> u8 {
     // Galois Field (256) Multiplication of two Bytes
@@ -27,6 +26,7 @@ pub fn galois_mul(mut a: u8, mut b: u8) -> u8 {
     p
 }
 
+#[allow(type_alias_bounds)]
 pub type State<M: RijndaelMode> = SMatrix<u8, 4, { <M as RijndaelMode>::NB_WORDS }>;
 
 pub struct RijndaelCryptor<M: RijndaelMode>
@@ -49,13 +49,6 @@ where
     pub fn new(input: &[u32; M::NB_WORDS], key: &[u32; M::NR_KEY * M::NB_WORDS]) -> Self {
         let state = words_to_matrix::<M>(input);
         let mut keys = [SMatrix::zeros(); M::NR_KEY];
-        // (0..key.len()).step_by(4).map(|i| {
-        //     words_to_matrix::<M>(
-        //         &[key[i], key[i + 1], key[i + 2], key[i + 3]]
-        //             .try_into()
-        //             .unwrap(),
-        //     )
-        // });
         for i in 0..M::NR_KEY {
             keys[i] =
                 words_to_matrix::<M>(&key[(i * 4)..(i * 4 + M::NB_WORDS)].try_into().unwrap());
@@ -63,6 +56,7 @@ where
         Self { state, keys }
     }
 
+    #[cfg(test)]
     pub fn new_with_raw_data(input: &[u8], key: &[u8]) -> Self {
         assert_eq!(input.len(), M::NB_WORDS * 4);
         assert_eq!(key.len(), M::NK_WORDS * 4);

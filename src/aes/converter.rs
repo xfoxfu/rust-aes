@@ -67,9 +67,7 @@ pub fn words_to_matrix<M: RijndaelMode>(input: &[u32; M::NB_WORDS]) -> State<M> 
 fn test_words_to_matrix() {
     use super::AES128;
     assert_eq!(
-        words_to_matrix::<AES128>(&[
-            0x12345678, 0x89ABCDEF, 0x42424242, 0x66CCFF00
-        ]),
+        words_to_matrix::<AES128>(&[0x12345678, 0x89ABCDEF, 0x42424242, 0x66CCFF00]),
         State::<AES128>::from_column_slice(&[
             0x12, 0x34, 0x56, 0x78, // col 0
             0x89, 0xAB, 0xCD, 0xEF, // col 1
@@ -80,7 +78,7 @@ fn test_words_to_matrix() {
 }
 
 pub fn matrix_to_words<M: RijndaelMode>(state: &State<M>) -> [u32; M::NB_WORDS] {
-    let mut output = [0;M::NB_WORDS];
+    let mut output = [0; M::NB_WORDS];
     for i in 0..M::NB_WORDS {
         output[i] = byte_to_word(&[state[(0, i)], state[(1, i)], state[(2, i)], state[(3, i)]]);
     }
@@ -100,12 +98,4 @@ fn test_matrix_to_words() {
         ])),
         [0x12345678, 0x89ABCDEF, 0x42424242, 0x66CCFF00]
     );
-}
-
-pub fn bytes_to_word_arr<const L: usize>(arr: [u8; L * 4]) -> [u32; L] {
-    let mut ret = [0;L];
-    for i in 0..L {
-        ret[i] = byte_to_word(&[arr[i * 4], arr[i * 4 + 1], arr[i * 4 + 2], arr[i * 4 + 3]]);
-    }
-    ret
 }
